@@ -1,4 +1,8 @@
 # finance_tracker
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/52ea8b12-0484-466e-97fe-213c0f1ad2a5" />
+
+
+
 Advanced AI-powered financial intelligence platform with real-time analytics, machine learning predictions, and professional wealth management tools. Built with Python, Pandas, and modern UI for comprehensive personal finance management.
 Quantum Finance Enterprise
 Advanced AI-Powered Financial Intelligence and Management Platform
