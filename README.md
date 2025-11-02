@@ -126,5 +126,3 @@ Integration with financial APIs
 
 Enhanced security featur
 
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details
