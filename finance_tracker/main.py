@@ -2,10 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.style import Bootstyle
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.animation as animation
 from matplotlib.figure import Figure
 import pandas as pd
 import numpy as np
@@ -15,7 +13,6 @@ import os
 import threading
 import time
 from collections import deque
-import requests
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -37,7 +34,6 @@ class AdvancedFinanceTracker:
             title="🚀 QUANTUM FINANCE PRO",
             themename="superhero",
             size=(1600, 1000),
-            iconphoto="💰",
             resizable=(True, True)
         )
         
@@ -62,6 +58,28 @@ class AdvancedFinanceTracker:
         
         self.load_data()
         self.setup_sample_data()
+        
+    def load_data(self):
+        """Load data from JSON file"""
+        if os.path.exists(self.data_file):
+            try:
+                with open(self.data_file, 'r') as f:
+                    data = json.load(f)
+                    self.transactions = data.get('transactions', [])
+            except Exception as e:
+                print(f"Error loading data: {e}")
+                self.transactions = []
+        else:
+            self.transactions = []
+                
+    def save_data(self):
+        """Save data to JSON file"""
+        try:
+            data = {'transactions': self.transactions}
+            with open(self.data_file, 'w') as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving data: {e}")
         
     def setup_sample_data(self):
         """Create realistic sample data if none exists"""
@@ -250,16 +268,16 @@ class AdvancedFinanceTracker:
         nav_card.pack(fill="x", padx=10, pady=10)
         
         nav_items = [
-            ("📊 Dashboard", "dashboard", self.show_dashboard),
-            ("💸 Transactions", "transactions", self.show_transactions),
-            ("📈 Analytics", "analytics", self.show_analytics),
-            ("🤖 AI Insights", "ai", self.show_ai_insights),
-            ("🎯 Budget", "budget", self.show_budget),
-            ("📋 Reports", "reports", self.show_reports),
-            ("⚙️ Settings", "settings", self.show_settings)
+            ("📊 Dashboard", self.show_dashboard),
+            ("💸 Transactions", self.show_transactions),
+            ("📈 Analytics", self.show_analytics),
+            ("🤖 AI Insights", self.show_ai_insights),
+            ("🎯 Budget", self.show_budget),
+            ("📋 Reports", self.show_reports),
+            ("⚙️ Settings", self.show_settings)
         ]
         
-        for text, icon, command in nav_items:
+        for text, command in nav_items:
             btn = ttk.Button(
                 nav_card,
                 text=text,
@@ -302,14 +320,14 @@ class AdvancedFinanceTracker:
         metrics_frame.pack(fill="x", padx=15, pady=15)
         
         metrics = [
-            ("Total Wealth", "₹---", "success", "💰", "trending_up"),
-            ("Monthly Income", "₹---", "info", "📈", "show_chart"),
-            ("Monthly Expense", "₹---", "danger", "📉", "warning"),
-            ("Investment Growth", "+12.5%", "warning", "💹", "auto_graph")
+            ("Total Wealth", "₹---", "success", "💰"),
+            ("Monthly Income", "₹---", "info", "📈"),
+            ("Monthly Expense", "₹---", "danger", "📉"),
+            ("Investment Growth", "+12.5%", "warning", "💹")
         ]
         
-        for i, (title, value, style, icon, anim) in enumerate(metrics):
-            card = self.create_animated_metric_card(metrics_frame, title, value, style, icon, anim)
+        for i, (title, value, style, icon) in enumerate(metrics):
+            card = self.create_animated_metric_card(metrics_frame, title, value, style, icon)
             card.grid(row=0, column=i, padx=8, sticky="nsew")
             metrics_frame.columnconfigure(i, weight=1)
             
@@ -356,7 +374,7 @@ class AdvancedFinanceTracker:
         
         self.create_recent_transactions_widget(recent_frame)
         
-    def create_animated_metric_card(self, parent, title, value, style, icon, animation_type):
+    def create_animated_metric_card(self, parent, title, value, style, icon):
         """Create animated metric cards"""
         card = ttk.Frame(parent, bootstyle="light", relief="solid", borderwidth=1, padding=15)
         
@@ -512,9 +530,325 @@ class AdvancedFinanceTracker:
         transactions_tab = ttk.Frame(self.notebook, bootstyle="dark")
         self.notebook.add(transactions_tab, text="💸 TRANSACTIONS")
         
-        # Implementation would continue here...
-        # [Previous transactions tab code with enhancements]
+        # Main container
+        main_container = ttk.Frame(transactions_tab, bootstyle="dark")
+        main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
+        # Title
+        ttk.Label(
+            main_container,
+            text="💫 TRANSACTIONS MANAGER",
+            font=("Segoe UI", 18, "bold"),
+            bootstyle="light"
+        ).pack(pady=(0, 20))
+        
+        # Two-column layout
+        content_frame = ttk.Frame(main_container, bootstyle="dark")
+        content_frame.pack(fill="both", expand=True)
+        content_frame.columnconfigure(0, weight=1)
+        content_frame.columnconfigure(1, weight=2)
+        content_frame.rowconfigure(0, weight=1)
+        
+        # Left column - Add Transaction Form
+        left_frame = ttk.Labelframe(content_frame, text="➕ ADD NEW TRANSACTION", 
+                                  bootstyle="primary", padding=20)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        
+        # Right column - Transactions List
+        right_frame = ttk.Labelframe(content_frame, text="📋 ALL TRANSACTIONS", 
+                                   bootstyle="info", padding=20)
+        right_frame.grid(row=0, column=1, sticky="nsew")
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(0, weight=1)
+        
+        # === LEFT FRAME - ADD TRANSACTION FORM ===
+        form_frame = ttk.Frame(left_frame, bootstyle="primary")
+        form_frame.pack(fill="both", expand=True)
+        
+        # Date
+        date_frame = ttk.Frame(form_frame)
+        date_frame.pack(fill="x", pady=10)
+        ttk.Label(date_frame, text="Date:", width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.date_entry = ttk.Entry(date_frame, font=("Segoe UI", 10), width=20)
+        self.date_entry.pack(side=tk.LEFT, padx=5)
+        self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        
+        # Amount
+        amount_frame = ttk.Frame(form_frame)
+        amount_frame.pack(fill="x", pady=10)
+        ttk.Label(amount_frame, text="Amount (₹):", width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.amount_entry = ttk.Entry(amount_frame, font=("Segoe UI", 10), width=20)
+        self.amount_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Category
+        category_frame = ttk.Frame(form_frame)
+        category_frame.pack(fill="x", pady=10)
+        ttk.Label(category_frame, text="Category:", width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.category_var = tk.StringVar(value="Expense")
+        self.category_combo = ttk.Combobox(
+            category_frame, 
+            textvariable=self.category_var,
+            values=["Income", "Expense"],
+            state="readonly",
+            width=17,
+            font=("Segoe UI", 10)
+        )
+        self.category_combo.pack(side=tk.LEFT, padx=5)
+        self.category_combo.bind('<<ComboboxSelected>>', self.update_subcategories)
+        
+        # Type/Subcategory
+        type_frame = ttk.Frame(form_frame)
+        type_frame.pack(fill="x", pady=10)
+        ttk.Label(type_frame, text="Type:", width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.type_combo = ttk.Combobox(type_frame, width=17, font=("Segoe UI", 10))
+        self.type_combo.pack(side=tk.LEFT, padx=5)
+        self.update_subcategories()
+        
+        # Description
+        desc_frame = ttk.Frame(form_frame)
+        desc_frame.pack(fill="x", pady=10)
+        ttk.Label(desc_frame, text="Description:", width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        self.desc_entry = ttk.Entry(desc_frame, font=("Segoe UI", 10), width=20)
+        self.desc_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Buttons
+        btn_frame = ttk.Frame(form_frame)
+        btn_frame.pack(fill="x", pady=20)
+        
+        ttk.Button(
+            btn_frame, 
+            text="💾 Add Transaction", 
+            command=self.add_transaction,
+            bootstyle="success",
+            width=15
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame, 
+            text="🗑️ Clear Form", 
+            command=self.clear_transaction_form,
+            bootstyle="warning",
+            width=12
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # === RIGHT FRAME - TRANSACTIONS LIST ===
+        list_container = ttk.Frame(right_frame, bootstyle="info")
+        list_container.pack(fill="both", expand=True)
+        list_container.columnconfigure(0, weight=1)
+        list_container.rowconfigure(1, weight=1)
+        
+        # Filter controls
+        filter_frame = ttk.Frame(list_container, bootstyle="info")
+        filter_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        
+        ttk.Label(filter_frame, text="Filter:", font=("Segoe UI", 10)).pack(side=tk.LEFT)
+        
+        self.filter_var = tk.StringVar(value="All")
+        filter_combo = ttk.Combobox(
+            filter_frame, 
+            textvariable=self.filter_var,
+            values=["All", "Income", "Expense"], 
+            state="readonly",
+            width=12,
+            font=("Segoe UI", 10)
+        )
+        filter_combo.pack(side=tk.LEFT, padx=5)
+        filter_combo.bind('<<ComboboxSelected>>', self.apply_transaction_filter)
+        
+        ttk.Button(
+            filter_frame, 
+            text="🔄 Refresh", 
+            command=self.refresh_transactions,
+            bootstyle="outline-info",
+            width=10
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            filter_frame, 
+            text="📤 Export", 
+            command=self.export_transactions,
+            bootstyle="outline-success",
+            width=10
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Transactions Treeview
+        tree_frame = ttk.Frame(list_container, bootstyle="info")
+        tree_frame.grid(row=1, column=0, sticky="nsew")
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
+        
+        columns = ("Date", "Description", "Amount", "Category", "Type")
+        self.transactions_tree = ttk.Treeview(
+            tree_frame, 
+            columns=columns, 
+            show="headings",
+            height=15,
+            bootstyle="dark"
+        )
+        
+        # Configure columns
+        col_config = {
+            "Date": 100, 
+            "Description": 200, 
+            "Amount": 120, 
+            "Category": 100, 
+            "Type": 120
+        }
+        
+        for col in columns:
+            self.transactions_tree.heading(col, text=col)
+            self.transactions_tree.column(col, width=col_config[col])
+    
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.transactions_tree.yview)
+        self.transactions_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.transactions_tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Load existing transactions
+        self.refresh_transactions()
+
+    def update_subcategories(self, event=None):
+        """Update subcategories based on selected category"""
+        category = self.category_var.get()
+        if category == "Income":
+            types = ["Salary", "Freelance", "Investment", "Business", "Other Income"]
+        else:
+            types = ["Food", "Transport", "Entertainment", "Bills", "Shopping", "Health", "Other"]
+        
+        self.type_combo['values'] = types
+        if types:
+            self.type_combo.set(types[0])
+
+    def add_transaction(self):
+        """Add a new transaction to the system"""
+        # Get form data
+        date = self.date_entry.get().strip()
+        amount_str = self.amount_entry.get().strip()
+        category = self.category_var.get()
+        trans_type = self.type_combo.get()
+        description = self.desc_entry.get().strip()
+        
+        # Validation
+        if not all([date, amount_str, description]):
+            messagebox.showwarning("Missing Fields", "Please fill in all fields!", parent=self.root)
+            return
+        
+        try:
+            amount = float(amount_str)
+            if amount <= 0:
+                raise ValueError("Amount must be positive")
+        except ValueError:
+            messagebox.showerror("Invalid Amount", "Please enter a valid positive number for amount!", parent=self.root)
+            return
+        
+        # Validate date format
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            messagebox.showerror("Invalid Date", "Please use YYYY-MM-DD format for date!", parent=self.root)
+            return
+        
+        # Create transaction object
+        transaction = {
+            "date": date,
+            "amount": amount,
+            "category": category,
+            "type": trans_type,
+            "description": description
+        }
+        
+        # Add to transactions list
+        self.transactions.append(transaction)
+        
+        # Save data
+        self.save_data()
+        
+        # Refresh displays
+        self.refresh_transactions()
+        self.update_real_time_metrics()
+        
+        # Clear form
+        self.clear_transaction_form()
+        
+        # Show success message
+        messagebox.showinfo("Success", "Transaction added successfully!", parent=self.root)
+
+    def clear_transaction_form(self):
+        """Clear the transaction form"""
+        self.date_entry.delete(0, tk.END)
+        self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        self.amount_entry.delete(0, tk.END)
+        self.desc_entry.delete(0, tk.END)
+        self.category_var.set("Expense")
+        self.update_subcategories()
+
+    def refresh_transactions(self):
+        """Refresh the transactions list"""
+        if not hasattr(self, 'transactions_tree'):
+            return
+        
+        # Clear existing items
+        for item in self.transactions_tree.get_children():
+            self.transactions_tree.delete(item)
+    
+        # Add transactions to treeview
+        for transaction in self.transactions:
+            amount_text = f"₹{transaction['amount']:,.2f}"
+            if transaction['category'] == "Expense":
+                amount_text = f"-₹{transaction['amount']:,.2f}"
+            
+            self.transactions_tree.insert("", tk.END, values=(
+                transaction['date'],
+                transaction['description'],
+                amount_text,
+                transaction['category'],
+                transaction['type']
+            ))
+
+    def apply_transaction_filter(self, event=None):
+        """Apply filter to transactions list"""
+        if not hasattr(self, 'transactions_tree'):
+            return
+    
+        filter_type = self.filter_var.get()
+    
+        # Show all items first
+        for item in self.transactions_tree.get_children():
+            self.transactions_tree.item(item, tags=())
+    
+        if filter_type != "All":
+            # Hide items that don't match the filter
+            for item in self.transactions_tree.get_children():
+                values = self.transactions_tree.item(item, "values")
+                if values and len(values) > 3 and values[3] != filter_type:
+                    self.transactions_tree.detach(item)
+
+    def export_transactions(self):
+        """Export transactions to CSV"""
+        try:
+            if not self.transactions:
+                messagebox.showinfo("No Data", "No transactions to export!", parent=self.root)
+                return
+        
+            # Create DataFrame
+            df = pd.DataFrame(self.transactions)
+        
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"transactions_export_{timestamp}.csv"
+        
+            # Export to CSV
+            df.to_csv(filename, index=False)
+        
+            messagebox.showinfo("Export Successful", 
+                              f"Transactions exported to:\n{filename}", 
+                              parent=self.root)
+        
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Error exporting transactions:\n{str(e)}", parent=self.root)
+            
     def create_analytics_tab(self):
         """Create advanced analytics tab"""
         analytics_tab = ttk.Frame(self.notebook, bootstyle="dark")
@@ -597,16 +931,78 @@ class AdvancedFinanceTracker:
         budget_tab = ttk.Frame(self.notebook, bootstyle="dark")
         self.notebook.add(budget_tab, text="🎯 BUDGET")
         
-        # Budget planning implementation
-        # [Previous budget tab code with enhancements]
+        content = ttk.Frame(budget_tab, bootstyle="dark")
+        content.pack(fill="both", expand=True, padx=20, pady=20)
         
+        ttk.Label(
+            content,
+            text="💰 SMART BUDGET PLANNING",
+            font=("Segoe UI", 18, "bold"),
+            bootstyle="light"
+        ).pack(pady=10)
+        
+        # Budget planning content
+        budget_frame = ttk.Labelframe(content, text="Monthly Budget Overview", bootstyle="primary", padding=20)
+        budget_frame.pack(fill="both", expand=True, pady=10)
+        
+        budget_data = [
+            ("Food", "₹8,000", "₹---", "---%"),
+            ("Transport", "₹5,000", "₹---", "---%"),
+            ("Entertainment", "₹6,000", "₹---", "---%"),
+            ("Bills", "₹12,000", "₹---", "---%"),
+            ("Shopping", "₹10,000", "₹---", "---%")
+        ]
+        
+        for category, budget, spent, percentage in budget_data:
+            row = ttk.Frame(budget_frame)
+            row.pack(fill="x", pady=8)
+            
+            ttk.Label(row, text=category, width=12, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+            ttk.Label(row, text=budget, width=10, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+            ttk.Label(row, text=spent, width=10, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+            ttk.Label(row, text=percentage, width=8, font=("Segoe UI", 10)).pack(side=tk.LEFT)
+            
     def create_reports_tab(self):
         """Create comprehensive reports tab"""
         reports_tab = ttk.Frame(self.notebook, bootstyle="dark")
         self.notebook.add(reports_tab, text="📋 REPORTS")
         
-        # Reports implementation
-        # [Previous reports tab code with enhancements]
+        content = ttk.Frame(reports_tab, bootstyle="dark")
+        content.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ttk.Label(
+            content,
+            text="📊 COMPREHENSIVE FINANCIAL REPORTS",
+            font=("Segoe UI", 18, "bold"),
+            bootstyle="light"
+        ).pack(pady=10)
+        
+        # Report options
+        reports_frame = ttk.Frame(content)
+        reports_frame.pack(fill="both", expand=True, pady=20)
+        
+        report_types = [
+            ("📈 Monthly Performance", "Detailed monthly financial analysis"),
+            ("💰 Income Statement", "Complete income and expense breakdown"),
+            ("🎯 Savings Analysis", "Deep dive into savings patterns"),
+            ("📊 Expense Trends", "Detailed expense categorization"),
+            ("📋 Tax Report", "Year-to-date tax transactions"),
+            ("📅 Annual Summary", "Complete year overview and insights")
+        ]
+        
+        for i, (title, description) in enumerate(report_types):
+            report_card = ttk.Labelframe(reports_frame, text=title, padding=15)
+            report_card.grid(row=i//2, column=i%2, padx=10, pady=10, sticky="nsew")
+            reports_frame.columnconfigure(i%2, weight=1)
+            reports_frame.rowconfigure(i//2, weight=1)
+            
+            ttk.Label(report_card, text=description, font=("Segoe UI", 9)).pack(anchor="w")
+            ttk.Button(
+                report_card, 
+                text="Generate", 
+                bootstyle="outline-primary",
+                command=lambda t=title: self.generate_report(t)
+            ).pack(anchor="e", pady=(10, 0))
         
     def create_settings_tab(self):
         """Create settings tab"""
@@ -703,26 +1099,10 @@ class AdvancedFinanceTracker:
         """Update all displays with current data"""
         self.update_real_time_metrics()
         
-    def load_data(self):
-        """Load data from JSON file"""
-        if os.path.exists(self.data_file):
-            try:
-                with open(self.data_file, 'r') as f:
-                    data = json.load(f)
-                    self.transactions = data.get('transactions', [])
-            except Exception as e:
-                print(f"Error loading data: {e}")
-                self.transactions = []
-                
-    def save_data(self):
-        """Save data to JSON file"""
-        try:
-            data = {'transactions': self.transactions}
-            with open(self.data_file, 'w') as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            print(f"Error saving data: {e}")
-            
+    def generate_report(self, report_type):
+        """Generate financial report"""
+        messagebox.showinfo("Report Generation", f"Generating {report_type}...\n\nThis feature will create comprehensive reports with charts and analysis.")
+        
     # Navigation methods
     def show_dashboard(self):
         self.notebook.select(0)
